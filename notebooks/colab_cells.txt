@@ -1,0 +1,46 @@
+# Paste these cells into a new Google Colab notebook in order.
+
+# --- Cell 1: Install dependencies (run once) ---
+!pip install -q kaggle xgboost shap optuna joblib
+
+# --- Cell 2: Upload kaggle.json (if you want to download dataset via Kaggle API) ---
+from google.colab import files
+print("If you want to download dataset via Kaggle API, upload your kaggle.json now.")
+uploaded = files.upload()  # Choose kaggle.json
+
+!mkdir -p ~/.kaggle
+!cp kaggle.json ~/.kaggle/
+!chmod 600 ~/.kaggle/kaggle.json
+
+# --- Cell 3: Download dataset from Kaggle (optional) ---
+# If you know the dataset slug, replace <owner>/<dataset-slug> below.
+# The link you provided is a Kaggle notebook; that notebook uses the German credit dataset.
+# If you do not know the dataset slug, download manually from the notebook UI or upload CSV to /content/data/
+!mkdir -p /content/data
+# Example (commented): !kaggle datasets download -d uciml/german-credit
+# After download unzip: !unzip -q /content/data/*.zip -d /content/data
+
+# --- Cell 4: Mount Google Drive for saving outputs (optional) ---
+from google.colab import drive
+drive.mount('/content/drive')
+
+# --- Cell 5: Quick EDA (update the filename to the CSV you have) ---
+import pandas as pd
+df = pd.read_csv('/content/data/german_credit.csv')  # change path/filename if needed
+print("Shape:", df.shape)
+display(df.head())
+print("\nTarget distribution:")
+# Replace 'Risk' with the correct target column name if different
+print(df['Risk'].value_counts())
+print("\nMissing values (top 20):")
+print(df.isna().sum().sort_values(ascending=False).head(20))
+
+# --- Cell 6: Run training (XGBoost) ---
+# Copy the content of src/train_xgboost.py here or run it via a shell command
+!python3 /content/drive/MyDrive/shap-credit-xgboost/src/train_xgboost.py --data /content/data/german_credit.csv --target Risk --out_dir /content/drive/MyDrive/shap-credit-xgboost/artifacts
+
+# --- Cell 7: Run SHAP analysis ---
+!python3 /content/drive/MyDrive/shap-credit-xgboost/src/shap_analysis.py --data /content/data/german_credit.csv --target Risk --models /content/drive/MyDrive/shap-credit-xgboost/artifacts/xgb_models_all_folds.pkl --out_dir /content/drive/MyDrive/shap-credit-xgboost/artifacts
+
+# --- Cell 8: Download outputs ---
+# After the run, artifacts (models, metrics, SHAP plots / html) will be in your Drive path above. Download or preview as needed.
